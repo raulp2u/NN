@@ -144,6 +144,33 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(split_overlap(T0 + 7000, T0 + 7300, boundaries), ["validation", "test"])
         self.assertIn("fora_do_dataset", split_overlap(T0 + 10000, T0 + 20000, boundaries))
 
+    def test_replay_warmup_loads_window_without_orders(self):
+        prices = [100, 101, 102, 103, 101, 99, 98, 100, 103, 104, 99]
+        bars = [Bar(T0 + 60 * i, p, p, p, p, 1.) for i, p in enumerate(prices)]
+        self.runner.paused = False
+        self.runner.replay(iter(bars), start=T0 + 60 * 6)
+        events = self.runner.log.since()
+        orders = [e for e in events if e["kind"] == "order"]
+        self.assertTrue(orders)
+        self.assertTrue(all(e["time"] >= T0 + 60 * 7 for e in orders))
+        warm = [e for e in events if e["kind"] == "decision" and e["time"] < T0 + 60 * 6]
+        self.assertTrue(warm and all(e["action"] == "AQUECIMENTO" for e in warm))
+        first = next(e for e in events if e["kind"] == "decision" and e["time"] == T0 + 60 * 6)
+        self.assertNotEqual(first["action"], "AQUECIMENTO")
+
+    def test_prediction_quality_reports_calibration_and_interval(self):
+        from trading_server import prediction_quality
+        outcome = lambda category, p_target, inside: {
+            "predicted": .001, "realized": .002, "error": -.001, "category": category, "side": 1, "inside_interval": inside,
+            "probabilities": {"p_target": p_target, "p_stop": .9 - p_target, "p_time": .1}}
+        quality = prediction_quality([outcome("alvo", .65, True), outcome("stop", .7, True), outcome("alvo", .1, False)])
+        self.assertAlmostEqual(quality["interval_coverage"], 2 / 3)
+        rows = {(r["category"], r["bin"][0]): r for r in quality["calibration"]["table"]}
+        self.assertEqual(rows[("alvo", .6)]["count"], 2)
+        self.assertAlmostEqual(rows[("alvo", .6)]["observed"], .5)
+        self.assertAlmostEqual(rows[("alvo", .6)]["predicted"], .675)
+        self.assertNotIn("calibration", prediction_quality([{"predicted": 0., "realized": 0., "error": 0.}]))
+
 
 if __name__ == "__main__":
     unittest.main()

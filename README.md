@@ -65,6 +65,8 @@ Para preparar rótulos e treinar o primeiro modelo numérico:
 .venv/Scripts/python.exe App/audit_numeric.py
 ```
 
+O modelo numérico v2 (faixa de previsão, stop e alvo previstos, probabilidades calibradas e derivativos) é treinado com `App/derivatives_data.py`, `App/supervised_v2.py` e `App/train_v2.py`; ver [App/INTERFACE.md](App/INTERFACE.md).
+
 Os resultados e a trilha das operações estão em [Relatorios/numerico_v1](Relatorios/numerico_v1/README.md); os pesos pequenos e scalers em [Modelos/numerico_v1](Modelos/numerico_v1/README.md). O dataset preserva as divisões temporais e exclui alvos que cruzam suas fronteiras. O teste histórico é retrospectivo porque a série já foi explorada; a avaliação independente precisa de novo período.
 
 O coletor preserva datasets já concluídos; use outra pasta para uma nova versão. Os dados são de BTC/USDT spot de uma bolsa e não representam o histórico global de Bitcoin. Para validar as skills localmente, instale também requirements-dev.txt; sem PyYAML esse teste é ignorado. O histórico de decisões está em Planos; commits seguem a exigência de entendimento humano de Agents.md.
