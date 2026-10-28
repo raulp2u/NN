@@ -60,7 +60,7 @@ def matches(path, expected):
 
 
 class NumericCNNModel:
-    """Checkpoint congelado de Modelos/numerico_v1, decidindo a cada janela de 30 minutos da grade UTC."""
+    """Checkpoint congelado, aplicado a cada janela móvel de 30 minutos completos."""
     level_triggered = False
     window = 30
     horizon = 30
@@ -117,9 +117,10 @@ class NumericCNNModel:
         return attribution.sum(0).tolist(), attribution
 
     def update(self, bar):
+        if self.bars and bar.open_time != self.bars[-1].open_time + MINUTE:
+            self.reset()
         self.bars.append(bar)
-        # Mesmas janelas do treino: 30 candles contíguos terminando na grade de 30 minutos.
-        if len(self.bars) < self.window or (bar.open_time + MINUTE) % (self.window * MINUTE):
+        if len(self.bars) < self.window:
             return None
         raw = self.np.array([[[b.open, b.high, b.low, b.close, b.volume] for b in self.bars]], dtype=self.np.float64)
         x = self.standardized(raw)

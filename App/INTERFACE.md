@@ -31,7 +31,9 @@ O navegador abre em `http://127.0.0.1:8000`, com o replay pausado. Use **Iniciar
 .venv/Scripts/python.exe App/trading_server.py live
 ```
 
-Recebe candles fechados de 1 minuto e o USDTBRL pelo stream público da Binance, sem chave. Os 60 minutos iniciais servem só de aquecimento e não geram ordens. Ao reconectar, os minutos perdidos são buscados na API REST. A conexão ao vivo não foi testada contra a Binance nesta entrega, porque o ambiente de desenvolvimento bloqueia esse acesso; os testes cobrem o formato das mensagens.
+Recebe candles fechados de 1 minuto e o USDTBRL pelo stream público da Binance, sem chave. Ao abrir, carrega imediatamente os últimos 30 minutos de histórico: não há espera de 30 minutos ou uma hora. O último candle atualizado já permite decidir; os anteriores apenas preparam a janela. A CNN recalcula a previsão a cada minuto, usando os últimos 30 candles contínuos, sem restrição a :00 ou :30. Se houver lacunas, aguarda uma janela completa.
+
+Ao reconectar, os minutos perdidos são buscados na API REST apenas para atualizar o modelo, sem executar ordens retroativas. Ordens pendentes são canceladas; uma posição que atravessou a recuperação é encerrada na abertura do primeiro candle atualizado, com motivo `lacuna`. A conexão real com a Binance precisa de validação operacional; os testes usam fontes simuladas.
 
 ## O que cada tela mostra
 
@@ -42,6 +44,7 @@ Recebe candles fechados de 1 minuto e o USDTBRL pelo stream público da Binance,
 ## Limitações desta versão
 
 - A CNN v1 prevê só o retorno de 30 minutos. **Stop e alvo são provisórios** (múltiplos da volatilidade recente) até existir a cabeça de excursões do plano, e a confiança calibrada aparece como indisponível.
+- O checkpoint foi treinado com janelas sem sobreposição. A operação agora usa janelas móveis sobrepostas; os resultados publicados da política anterior não validam essa nova frequência. Previsões consecutivas são dependentes.
 - Com stop e alvo no mesmo candle, a simulação assume o stop. Execução na abertura seguinte é idealizada.
 - O custo de empréstimo da venda descoberta é hipótese. Sem impostos, impacto ou limite de liquidez.
 - Cada sessão grava um log SQLite somente acréscimo em `App/results/sessions/`, ignorado pelo Git.

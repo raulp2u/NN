@@ -94,9 +94,10 @@ def volatility(bars, horizon):
     return math.sqrt(variance * horizon)
 
 
-def performance(trades, resamples=2000, seed=42):
+def performance(trades, resamples=2000, seed=42, display=False):
     """Métricas de operações fechadas; intervalo bootstrap do resultado médio por operação."""
-    nets = [t["net_quote"] for t in trades]
+    unit = "display" if display else "quote"
+    nets = [t[f"net_{unit}"] for t in trades]
     if not nets:
         return {"trades": 0}
     wins, losses = [x for x in nets if x > 0], [x for x in nets if x <= 0]
@@ -107,20 +108,21 @@ def performance(trades, resamples=2000, seed=42):
         drawdown = max(drawdown, peak - balance)
     rng = random.Random(seed)
     means = sorted(sum(rng.choice(nets) for _ in nets) / len(nets) for _ in range(resamples))
-    costs = sum(t["fees_quote"] + t["slippage_quote"] + t["borrow_quote"] for t in trades)
-    gross = sum(t["gross_quote"] for t in trades)
+    costs = sum((t["fees_quote"] + t["slippage_quote"] + t["borrow_quote"])
+                * (t["rate_entry"] if display else 1.0) for t in trades)
+    gross = sum(t["gross_quote"] * (t["rate_entry"] if display else 1.0) for t in trades)
     by = {}
     for key in ("side", "exit_reason"):
         for t in trades:
-            group = by.setdefault(f"{key}:{t[key]}", {"trades": 0, "net_quote": 0.0})
+            group = by.setdefault(f"{key}:{t[key]}", {"trades": 0, f"net_{unit}": 0.0})
             group["trades"] += 1
-            group["net_quote"] += t["net_quote"]
-    return {"trades": len(nets), "net_quote": sum(nets), "gross_quote": gross, "costs_quote": costs,
+            group[f"net_{unit}"] += t[f"net_{unit}"]
+    return {"trades": len(nets), f"net_{unit}": sum(nets), f"gross_{unit}": gross, f"costs_{unit}": costs,
             "win_rate": len(wins) / len(nets),
             "average_win": sum(wins) / len(wins) if wins else None,
             "average_loss": sum(losses) / len(losses) if losses else None,
             "profit_factor": sum(wins) / -sum(losses) if losses and sum(losses) < 0 else None,
-            "max_drawdown_quote": drawdown, "mean_net_quote": sum(nets) / len(nets),
+            f"max_drawdown_{unit}": drawdown, f"mean_net_{unit}": sum(nets) / len(nets),
             "mean_net_ci90": [means[int(.05 * resamples)], means[int(.95 * resamples) - 1]],
             "ambiguous_bars": sum(bool(t["ambiguous"]) for t in trades), "groups": by}
 
@@ -148,6 +150,7 @@ class Engine:
         self._last_decision = None
         self._fx_missing = False
         self.warming = False  # ao vivo: candles de aquecimento já passados não geram ordens
+        self.recovering_position = False
 
     # Eventos são dicionários simples, prontos para JSON e para o log SQLite.
     def _event(self, kind, time, **payload):
@@ -159,6 +162,15 @@ class Engine:
                               low=bar.low, close=bar.close, volume=bar.volume)]
         if self.previous is not None and bar.open_time <= self.previous.open_time:
             raise ValueError("Candle duplicado ou fora de ordem")
+        if self.warming:
+            self.pending = None
+            self.last_direction = None
+            self.recovering_position |= self.position is not None
+        elif self.recovering_position:
+            self.pending = None
+            self.recovering_position = False
+            if self.position:
+                events += self._close(bar, bar.open, "lacuna", "open")
         if self.previous is not None and bar.open_time - self.previous.open_time != MINUTE:
             missing = (bar.open_time - self.previous.open_time) // MINUTE - 1
             events.append(self._event("alert", bar.open_time, level="warning", code="gap",
@@ -167,14 +179,14 @@ class Engine:
                 events.append(self._event("alert", bar.open_time, level="warning", code="order_cancelled",
                                           message="Ordem pendente cancelada pela lacuna"))
             self.pending = None
-            if self.position:
+            if self.position and not self.warming:
                 events += self._close(bar, bar.open, "lacuna", "open")
             self.model.reset()
             self.recent.clear()
             self.last_direction = None
         elif self.pending is not None:
             events += self._execute(bar)
-        if self.position:
+        if self.position and not self.warming:
             events += self._manage(bar)
         missing = self.fx is not None and self._rate(bar.open_time) is None
         if missing != self._fx_missing:
@@ -241,7 +253,7 @@ class Engine:
             action, target, reason = "AGUARDAR", None, reason + "; sem cotação de câmbio"
         if self.warming:
             action, target, reason = "AQUECIMENTO", None, reason + "; candle histórico de aquecimento, sem ordem"
-        self.last_direction = desired
+        self.last_direction = None if self.warming else desired
         self.pending = target
         self.counter += 1
         decision_id = self.counter
@@ -255,7 +267,7 @@ class Engine:
                              hurdle_long=s.hurdle(1), hurdle_short=s.hurdle(-1, horizon))
         self._last_decision = record
         events = [record]
-        if signal.predicted_log_return is not None and signal.horizon_minutes:
+        if not self.warming and signal.predicted_log_return is not None and signal.horizon_minutes:
             self.outcomes.append({"decision_id": decision_id, "time": bar.open_time, "close": bar.close,
                                   "due": available + signal.horizon_minutes * MINUTE,
                                   "predicted": signal.predicted_log_return})
@@ -275,6 +287,10 @@ class Engine:
         s = self.settings
         fee, slip = s.fee_bps / 10000, s.slippage_bps / 10000
         rate = self._rate(bar.open_time)
+        if rate is None:
+            self.last_direction = None
+            return [self._event("alert", bar.open_time, level="warning", code="order_cancelled",
+                                message="Entrada cancelada: câmbio indisponível na execução")]
         stake_quote = s.stake / rate
         if side == 1:
             price = bar.open * (1 + slip)
@@ -409,7 +425,7 @@ class Engine:
         s = self.settings
         fee, slip = s.fee_bps / 10000, s.slippage_bps / 10000
         rate = self._rate(bar.open_time)
-        if self.baseline is None and rate is not None:
+        if self.baseline is None and rate is not None and not self.warming:
             stake_quote = s.stake / rate
             self.baseline = stake_quote / (bar.open * (1 + slip) * (1 + fee)), stake_quote
         open_net = open_gross = None

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import math
+from importlib.util import find_spec
 import random
 import unittest
 
@@ -45,6 +46,15 @@ PLAIN = dict(levels=False, borrow_bps_per_hour=0)
 
 
 class AccountingTests(unittest.TestCase):
+    def test_fx_expiration_cancels_pending_entry(self):
+        engine = Engine(Scripted({T0: LONG}), Settings(**PLAIN),
+                        fx=lambda t: 5.0 if t == T0 else None)
+        engine.on_bar(bar(0, 100))
+        events = engine.on_bar(bar(1, 100))
+        self.assertIsNone(engine.position)
+        self.assertIsNone(engine.pending)
+        self.assertIn("order_cancelled", [e["code"] for e in kinds(events, "alert")])
+
     def test_long_fixed_stake_timeout_at_close(self):
         engine = Engine(Scripted({T0: LONG}), Settings(horizon_minutes=2, **PLAIN))
         events = run(engine, [bar(0, 99), bar(1, 100, c=101), bar(2, 101, c=102), bar(3, 102)])
@@ -214,7 +224,7 @@ class EquivalenceTests(unittest.TestCase):
             self.assertAlmostEqual(end / start - 1, trade["net_pct"], places=12)
             start = end
 
-    @unittest.skipIf(__import__("importlib").util.find_spec("torch") is None, "Requer requirements-torch-cpu.txt")
+    @unittest.skipIf(find_spec("torch") is None, "Requer requirements-torch-cpu.txt")
     def test_window_policy_matches_train_numeric_simulation(self):
         import numpy as np
         import polars as pl
@@ -237,6 +247,31 @@ class EquivalenceTests(unittest.TestCase):
 
 
 class CausalityTests(unittest.TestCase):
+    def test_recovery_cancels_orders_and_does_not_execute_stops_in_the_past(self):
+        signal = Signal(1, "test", stop_distance=.01, target_distance=.01)
+        engine = Engine(Scripted({T0: signal, T0 + 120: SHORT}), Settings(**PLAIN))
+        engine.on_bar(bar(0, 100))
+        engine.warming = True
+        recovered = engine.on_bar(bar(1, 100, h=120, low=80))
+        self.assertFalse(kinds(recovered, "order"))
+        self.assertIsNone(engine.position)
+
+        # Uma posição que já existia antes da perda da conexão não sai num candle recuperado.
+        engine = Engine(Scripted({T0: signal, T0 + 120: SHORT}), Settings(levels=True))
+        engine.on_bar(bar(0, 100))
+        engine.on_bar(bar(1, 100))
+        self.assertIsNotNone(engine.position)
+        engine.warming = True
+        recovered = engine.on_bar(bar(2, 100, h=120, low=80))
+        self.assertFalse(kinds(recovered, "order"))
+        self.assertIsNotNone(engine.position)
+        self.assertIsNone(engine.pending)
+        engine.warming = False
+        resumed = engine.on_bar(bar(3, 105))
+        trade = kinds(resumed, "trade")[0]
+        self.assertEqual((trade["exit_reason"], trade["exit_raw"], trade["exit_time"]),
+                         ("lacuna", 105, T0 + 180))
+
     def test_future_bars_do_not_change_past_events(self):
         bars = random_walk(300, seed=11)
         settings = Settings(stop_k=1, target_k=1)
@@ -268,6 +303,23 @@ class CausalityTests(unittest.TestCase):
 
 
 class PerformanceTests(unittest.TestCase):
+    def test_display_statistics_use_each_trade_fx_and_include_fx_effect(self):
+        engine = Engine(Scripted({T0: LONG, T0 + 180: LONG}),
+                        Settings(horizon_minutes=2, **PLAIN),
+                        fx=lambda t: 5.0 if t < T0 + 120 else 6.0)
+        run(engine, [bar(i, p) for i, p in enumerate([100, 110, 110, 100, 100, 100])])
+        self.assertEqual(len(engine.trades), 2)
+        result = performance(engine.trades, display=True)
+        nets = [t["net_display"] for t in engine.trades]
+        self.assertAlmostEqual(result["net_display"], engine.realized_display)
+        self.assertAlmostEqual(result["mean_net_display"], sum(nets) / 2)
+        self.assertGreater(engine.trades[0]["fx_effect_display"], 0)
+        self.assertAlmostEqual(result["max_drawdown_display"], -nets[-1])
+        self.assertAlmostEqual(result["groups"]["side:comprada"]["net_display"], sum(nets))
+        expected = sum((t["fees_quote"] + t["slippage_quote"] + t["borrow_quote"])
+                       * t["rate_entry"] for t in engine.trades)
+        self.assertAlmostEqual(result["costs_display"], expected)
+
     def test_summary_metrics(self):
         base = {"fees_quote": .1, "slippage_quote": .05, "borrow_quote": 0., "ambiguous": False,
                 "side": "comprada", "exit_reason": "tempo"}

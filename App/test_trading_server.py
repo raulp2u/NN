@@ -1,19 +1,67 @@
 from datetime import datetime, timezone
+import asyncio
 from importlib.util import find_spec
 import json
 from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import AsyncMock, patch
 
 from trading_engine import Bar, Engine, Settings
 from trading_models import MovingAverageModel
-from trading_sources import FxSeries, iso, parse_kline_message, read_history
+from trading_sources import FxSeries, iso, live_bars, parse_kline_message, read_history
 
 T0 = int(datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp())
 
 
 class SourceTests(unittest.TestCase):
+    def test_live_start_is_ready_from_history_and_backfill_cannot_place_orders(self):
+        now = T0 + 60 * 60
+        initial = [Bar(now - 1800 + i * 60, 100 + i, 100 + i, 100 + i, 100 + i, 1)
+                   for i in range(30)]
+        recovered = [Bar(now, 130, 130, 130, 130, 1)]
+        fx = FxSeries()
+        engine = Engine(MovingAverageModel(2, 3), Settings(levels=False), fx=fx)
+        calls, events, order = [], [], []
+
+        def fetch(symbol, start, end):
+            order.append(symbol)
+            if symbol == "USDTBRL":
+                return [Bar(now - 120, 5, 5, 5, 5, 1), Bar(now - 60, 5, 5, 5, 5, 1)]
+            if start == now - 1800:
+                return initial
+            return recovered
+
+        def feed(bar, warmup):
+            calls.append((bar.open_time, warmup))
+            engine.warming = warmup
+            events.extend(engine.on_bar(bar))
+
+        async def messages():
+            yield {"e": "kline", "k": {"s": "BTCUSDT", "i": "1m", "x": True,
+                    "t": (now + 60) * 1000, "o": "131", "h": "131", "l": "131", "c": "131", "v": "1"}}
+            raise asyncio.CancelledError
+
+        socket = AsyncMock()
+        socket.__aiter__.side_effect = messages
+        context = AsyncMock()
+        context.__aenter__.return_value = socket
+        clock_values = iter([now, now, now + 120])
+        with patch("trading_sources.fetch_closed", side_effect=fetch), \
+             patch("trading_sources.time.time", side_effect=lambda: next(clock_values)), \
+             patch("websockets.connect", return_value=context):
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(live_bars("BTCUSDT", feed, on_fx=lambda b: fx.add(b.open_time, b.close)))
+        self.assertEqual(order[:2], ["USDTBRL", "BTCUSDT"])
+        self.assertTrue(all(warm for _, warm in calls[:29]))
+        self.assertEqual(calls[29], (now - 60, False))
+        self.assertEqual(calls[30:], [(now, True), (now + 60, False)])
+        # A decisão inicial está pronta; a ordem pendente foi cancelada durante a recuperação.
+        initial_decision = next(e for e in events if e["kind"] == "decision" and e["time"] == now - 60)
+        self.assertEqual(initial_decision["action"], "COMPRAR")
+        self.assertFalse(any(e["kind"] == "order" for e in events))
+
     def test_only_closed_binance_klines_are_used(self):
         message = {"stream": "btcusdt@kline_1m", "data": {"e": "kline", "s": "BTCUSDT", "k": {
             "t": T0 * 1000, "T": T0 * 1000 + 59999, "s": "BTCUSDT", "i": "1m", "o": "100.0",
@@ -71,6 +119,7 @@ class ServerTests(unittest.TestCase):
             self.assertIn("trade", {e["kind"] for e in events})
             stats = client.get("/api/stats").json()
             self.assertEqual(stats["trading"]["trades"], len(self.runner.engine.trades))
+            self.assertAlmostEqual(stats["trading"]["net_display"], self.runner.engine.realized_display)
             with client.websocket_connect("/ws?after=3") as socket:
                 backlog = json.loads(socket.receive_text())
             self.assertEqual(backlog[0]["seq"], 4)

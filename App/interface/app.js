@@ -482,14 +482,14 @@ function renderPerformance() {
     warning.textContent = "Ainda sem operações fechadas.";
   } else {
     cards.append(
-      metric("Resultado líquido", money(t.net_quote), cls(t.net_quote)),
+      metric("Resultado líquido", money(t.net_display), cls(t.net_display)),
       metric("Operações", String(t.trades)),
       metric("Positivas", pct(t.win_rate, 0).replace("+", "")),
       metric("Ganho médio / perda média", `${money(t.average_win)} / ${money(t.average_loss)}`),
       metric("Fator de lucro", t.profit_factor == null ? "—" : N2.format(t.profit_factor)),
-      metric("Maior queda do saldo", money(-t.max_drawdown_quote), "neg"),
-      metric("Custos totais (câmbio de entrada)", money(-t.costs_quote), "neg"),
-      metric("Média por operação, IC 90%", `${money(t.mean_net_quote)} [${money(t.mean_net_ci90[0])}; ${money(t.mean_net_ci90[1])}]`),
+      metric("Maior queda do saldo", money(-t.max_drawdown_display), "neg"),
+      metric("Custos totais (câmbio de entrada)", money(-t.costs_display), "neg"),
+      metric("Média por operação, IC 90%", `${money(t.mean_net_display)} [${money(t.mean_net_ci90[0])}; ${money(t.mean_net_ci90[1])}]`),
       metric("Stop e alvo no mesmo candle", String(t.ambiguous_bars)),
     );
     const notes = [];
@@ -513,7 +513,7 @@ function renderPerformance() {
     const row = body.insertRow();
     cell(row, name.replace("side:", "lado ").replace("exit_reason:", "saída por "));
     cell(row, g.trades);
-    cell(row, money(g.net_quote), cls(g.net_quote));
+    cell(row, money(g.net_display), cls(g.net_display));
   }
   $("calibration").textContent = S.session.model === "numerico_v1"
     ? "Indisponível: o modelo v1 prevê só o retorno, sem probabilidades. O diagrama aparece quando existir a cabeça de desfecho (alvo, stop, tempo) do plano."

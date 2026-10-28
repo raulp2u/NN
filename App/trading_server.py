@@ -208,7 +208,7 @@ def create_app(runner, background=None):
     def stats():
         with runner.lock:
             trades = list(runner.engine.trades)
-        return {"trading": performance(trades), "prediction": prediction_quality(runner.outcomes)}
+        return {"trading": performance(trades, display=True), "prediction": prediction_quality(runner.outcomes)}
 
     @app.post("/api/control")
     def control(command: dict):

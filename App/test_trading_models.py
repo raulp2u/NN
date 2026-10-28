@@ -25,12 +25,18 @@ class NumericCNNModelTests(unittest.TestCase):
     def setUp(self):
         self.model.reset()
 
-    def test_decides_only_on_training_grid(self):
+    def test_decides_on_every_complete_rolling_window(self):
         signals = [self.model.update(b) for b in bars(70, T0 + 600)]
         decided = [i for i, s in enumerate(signals) if s is not None]
-        # Início às 00:10: primeira janela completa da grade termina às 01:00.
-        self.assertEqual(decided, [49])
-        self.assertEqual((T0 + 600 + 60 * 49 + 60) % 1800, 0)
+        # Início às 00:10: pronta às 00:40, depois a cada minuto.
+        self.assertEqual(decided, list(range(29, 70)))
+
+    def test_gap_requires_new_complete_window(self):
+        for b in bars(30):
+            self.model.update(b)
+        signals = [self.model.update(b) for b in bars(30, T0 + 31 * 60)]
+        self.assertTrue(all(s is None for s in signals[:29]))
+        self.assertIsNotNone(signals[-1])
 
     def test_prediction_matches_training_transform(self):
         import numpy as np

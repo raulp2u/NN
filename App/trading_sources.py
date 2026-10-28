@@ -92,19 +92,23 @@ def fetch_closed(symbol, start, end, now=None):
     return bars
 
 
-async def live_bars(symbol, on_bar, on_fx=None, fx_symbol="USDTBRL", warmup=60, on_status=None):
+async def live_bars(symbol, on_bar, on_fx=None, fx_symbol="USDTBRL", warmup=30, on_status=None):
     """Assina candles de 1 minuto; preenche lacunas por REST ao reconectar. Nunca usa candle aberto.
-    on_bar(bar, warmup): warmup verdadeiro para o histórico inicial, que não deve gerar ordens."""
+    on_bar(bar, warmup): verdadeiro para histórico antigo/recuperado, sem execução de ordens.
+    O último candle inicial atualizado já permite decidir, após carregar o câmbio."""
     import websockets
     streams = [f"{symbol.lower()}@kline_1m"] + ([f"{fx_symbol.lower()}@kline_1m"] if on_fx else [])
     last = None
     now = int(time.time()) // MINUTE * MINUTE
-    for bar in await asyncio.to_thread(fetch_closed, symbol, now - warmup * MINUTE, now):
-        on_bar(bar, True)
-        last = bar.open_time
     if on_fx:
         for bar in await asyncio.to_thread(fetch_closed, fx_symbol, now - 10 * MINUTE, now):
             on_fx(bar)
+    initial = await asyncio.to_thread(fetch_closed, symbol, now - warmup * MINUTE, now)
+    current = int(time.time()) // MINUTE * MINUTE
+    for index, bar in enumerate(initial):
+        historical = index != len(initial) - 1 or bar.open_time + MINUTE != current
+        on_bar(bar, historical)
+        last = bar.open_time
     delay = 1
     while True:
         try:
@@ -124,9 +128,10 @@ async def live_bars(symbol, on_bar, on_fx=None, fx_symbol="USDTBRL", warmup=60, 
                         continue
                     if last is not None and bar.open_time - last > MINUTE:
                         for missing in await asyncio.to_thread(fetch_closed, symbol, last + MINUTE, bar.open_time):
-                            on_bar(missing, False)
+                            on_bar(missing, True)
                             last = missing.open_time
-                    on_bar(bar, False)
+                    historical = bar.open_time + MINUTE < int(time.time()) // MINUTE * MINUTE
+                    on_bar(bar, historical)
                     last = bar.open_time
         except (OSError, asyncio.TimeoutError, websockets.WebSocketException) as error:
             if on_status:
