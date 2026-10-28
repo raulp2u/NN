@@ -1,0 +1,6 @@
+# Interface local de replay e paper trading. Instalar depois de requirements-numeric.txt.
+fastapi==0.162.0
+uvicorn==0.54.0
+websockets==17.3
+# Somente para os testes do servidor (fastapi.testclient).
+httpx==0.28.1

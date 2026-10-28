@@ -253,3 +253,21 @@ Acréscimo à arquitetura de `Arquitetura neural e ferramentas.md`, mantendo o m
 - Perold (1988), *The Implementation Shortfall: Paper versus Reality*, Journal of Portfolio Management 14(3): diferença entre preço de decisão e preço executado; motiva registrar ambos.
 - Bailey e López de Prado (2014), *The Deflated Sharpe Ratio*, Journal of Portfolio Management 40(5): resultados de muitas tentativas superestimam desempenho; motiva bloquear o teste e mostrar incerteza.
 - Documentação oficial Binance Spot API, WebSocket Streams e Market Data endpoints: formato de `kline_1m`, `bookTicker` e `klines` REST.
+
+## Execução (28/10/2026)
+
+Implementadas as fases 0 e 1 sobre o checkpoint `Modelos/numerico_v1`, e a ingestão da fase 2:
+
+- `App/trading_engine.py`: motor único, corretora simulada com R$ 50 fixos, compra e venda descoberta, custo de empréstimo, stop, alvo, saída por tempo e por lacuna, desfecho das previsões e revisão retrospectiva tardia.
+- `App/trading_models.py`: médias móveis do quantlab e CNN v1, conferida pelo hash do relatório, decidindo nas mesmas janelas de 30 minutos do treino, com Integrated Gradients.
+- `App/trading_sources.py` e `App/trading_server.py`: replay do CSV local, stream público da Binance com preenchimento por REST, câmbio causal, log SQLite somente acréscimo, API e WebSocket.
+- `App/interface/`: painel, diário, detalhe e desempenho, com Lightweight Charts 4.2.3 incluído localmente (Apache 2.0, integridade npm conferida).
+
+Verificação: 29 testes novos, 72 no total. O motor reproduz exatamente as operações de `quantlab.simulate` e o retorno composto de `train_numeric.simulated_policy` nas configurações equivalentes. Interface conferida no Chromium com dados sintéticos gerados só para o teste, sem erros de console.
+
+Diferenças em relação ao plano:
+
+- Stop e alvo são provisórios (múltiplos da volatilidade). A cabeça de excursões e a de desfecho exigem novo treinamento com os dados locais; o motor já aceita distâncias de stop e alvo vindas do modelo.
+- Integrated Gradients implementado diretamente em PyTorch (32 passos, base na média do treino), sem a dependência Captum.
+- O cone de previsão é uma linha: a faixa de previsão conformal precisa dos resíduos de validação, que estão só na máquina local. Coleta do spread pelo bookTicker ficou para a fase 2 completa.
+- Conexão ao vivo não testada contra a Binance: o ambiente de desenvolvimento bloqueia o acesso. Histórico USDTBRL para replay em reais ainda não é coletado; aceita CSV ou cotação fixa declarada como hipótese.

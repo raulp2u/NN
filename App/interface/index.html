@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuantLab: operação simulada</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="banner">SIMULAÇÃO: nenhum dinheiro real</div>
+  <div class="session">
+    <span id="mode" class="chip"></span>
+    <span id="model" class="chip" title=""></span>
+    <span id="period" class="chip"></span>
+    <span id="currency" class="chip"></span>
+    <span id="clock" class="clock"></span>
+  </div>
+  <div id="controls" class="controls">
+    <button id="play" type="button">▶ Iniciar</button>
+    <button id="step" type="button" title="Avançar um candle">+1 min</button>
+    <label>Velocidade
+      <select id="speed">
+        <option value="1">1x (tempo real)</option>
+        <option value="10">10x</option>
+        <option value="60">60x</option>
+        <option value="300">300x</option>
+        <option value="0">máxima</option>
+      </select>
+    </label>
+  </div>
+  <nav>
+    <button class="tab active" data-tab="painel" type="button">Painel</button>
+    <button class="tab" data-tab="diario" type="button">Diário de operações</button>
+    <button class="tab" data-tab="desempenho" type="button">Desempenho</button>
+  </nav>
+</header>
+
+<main>
+  <section id="painel" class="view active">
+    <div class="layout">
+      <div class="charts">
+        <div id="chart" class="chart"></div>
+        <div class="legend">
+          <span><i class="swatch up"></i>compra</span><span><i class="swatch down"></i>venda a descoberto</span>
+          <span><i class="dash target"></i>alvo</span><span><i class="dash stop"></i>stop</span>
+          <span><i class="dash even"></i>empate após custos</span><span><i class="dash forecast"></i>previsão 30 min</span>
+          <span><i class="swatch attr"></i>influência de cada minuto na previsão (não é causa no mercado)</span>
+        </div>
+        <h3>Saldo acumulado <small>estratégia vs comprar e segurar o mesmo valor</small></h3>
+        <div id="equity" class="chart small"></div>
+      </div>
+      <aside>
+        <div class="card" id="thinking">
+          <h2>O que o modelo vê agora</h2>
+          <div id="decision-empty" class="muted">Aguardando a primeira janela completa de 30 minutos.</div>
+          <dl id="decision" hidden>
+            <dt>Decidido em</dt><dd id="d-time"></dd>
+            <dt>Previsão 30 min</dt><dd id="d-pred"></dd>
+            <dt>Faixa de previsão</dt><dd class="muted">indisponível nesta versão</dd>
+            <dt>Custo de ida e volta</dt><dd id="d-hurdle"></dd>
+            <dt>Confiança calibrada</dt><dd id="d-conf" class="muted"></dd>
+            <dt>Volatilidade recente</dt><dd id="d-vol"></dd>
+          </dl>
+          <div id="d-action" class="action"></div>
+          <p id="d-reason" class="reason"></p>
+          <p id="d-quality" class="muted small"></p>
+        </div>
+        <div class="card" id="position-card">
+          <h2>Posição</h2>
+          <div id="position-empty" class="muted">Sem posição aberta.</div>
+          <dl id="position" hidden>
+            <dt>Lado</dt><dd id="p-side"></dd>
+            <dt>Entrada</dt><dd id="p-entry"></dd>
+            <dt>Agora (bruto)</dt><dd id="p-gross"></dd>
+            <dt>Líquido se sair agora</dt><dd id="p-net"></dd>
+            <dt>Tempo</dt><dd id="p-age"></dd>
+            <dt>Até o alvo</dt><dd id="p-target"></dd>
+            <dt>Até o stop</dt><dd id="p-stop"></dd>
+            <dt>Melhor / pior até agora</dt><dd id="p-extremes"></dd>
+          </dl>
+          <p id="p-source" class="muted small"></p>
+        </div>
+        <div class="card">
+          <h2>Dados</h2>
+          <p id="data-status">Conectando…</p>
+          <ul id="alerts" class="alerts"></ul>
+        </div>
+      </aside>
+    </div>
+    <div class="strip">
+      <strong id="balance"></strong>
+      <span id="recent"></span>
+    </div>
+  </section>
+
+  <section id="diario" class="view">
+    <p class="muted">Colunas em cinza são <b>retrospectivas</b>: usam preços posteriores à saída, aparecem 30 minutos depois dela e nunca alimentam o modelo.</p>
+    <div class="table-wrap">
+      <table id="trades">
+        <thead>
+          <tr>
+            <th>#</th><th>Lado</th><th>Entrada</th><th>Saída</th><th>Duração</th><th>Preços</th>
+            <th>Stop / alvo</th><th>Saída por</th><th>Bruto</th><th>Custos</th><th>Líquido</th>
+            <th>Previsto</th><th>Melhor / pior</th>
+            <th class="retro">Eficiência da saída</th><th class="retro">E se tivesse saído −15 / −5 / +5 / +15 / +30 min</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="desempenho" class="view">
+    <div id="warning" class="warning" hidden></div>
+    <div class="cards" id="metrics"></div>
+    <div class="grid2">
+      <div class="card"><h2>Resultado por operação</h2><div id="hist"></div></div>
+      <div class="card"><h2>Previsto vs realizado em 30 min</h2><div id="scatter"></div>
+        <p class="muted small">Cada ponto é uma decisão resolvida. A diagonal é a previsão perfeita.</p></div>
+      <div class="card"><h2>Erro médio: modelo vs prever zero</h2><div id="rolling"></div>
+        <p class="muted small">Média móvel de 50 decisões. Se a linha do modelo não fica abaixo da de prever zero, a previsão não está ajudando.</p></div>
+      <div class="card"><h2>Por lado e tipo de saída</h2><table id="groups"></table>
+        <h2>Calibração da confiança</h2>
+        <p class="muted" id="calibration"></p></div>
+    </div>
+  </section>
+</main>
+
+<div id="detail" class="modal" hidden>
+  <div class="modal-body">
+    <button id="close-detail" class="close" type="button" aria-label="Fechar">×</button>
+    <h2 id="detail-title"></h2>
+    <div id="detail-chart" class="chart"></div>
+    <div class="grid2">
+      <div><h3>Estado do modelo na entrada</h3><dl id="detail-state"></dl><div id="detail-attr"></div></div>
+      <div><h3>Decisões durante a operação</h3><ol id="detail-timeline" class="timeline"></ol>
+        <h3>Reproduzir esta operação</h3><code id="detail-command"></code></div>
+    </div>
+  </div>
+</div>
+
+<footer>Gráficos: <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView Lightweight Charts</a> (Apache 2.0).</footer>
+<script src="/static/vendor/lightweight-charts.standalone.production.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
