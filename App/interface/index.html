@@ -4,40 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QuantLab: operação simulada</title>
+<link rel="preload" href="/static/vendor/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 <header>
-  <div class="banner">SIMULAÇÃO: nenhum dinheiro real</div>
+  <div class="banner" role="note"><span>Simulação: nenhum dinheiro real</span></div>
+  <div class="bar">
+    <nav role="tablist" aria-label="Telas">
+      <button class="tab active" data-tab="painel" type="button" role="tab" aria-selected="true" aria-controls="painel">Painel</button>
+      <button class="tab" data-tab="diario" type="button" role="tab" aria-selected="false" aria-controls="diario">Diário de operações</button>
+      <button class="tab" data-tab="desempenho" type="button" role="tab" aria-selected="false" aria-controls="desempenho">Desempenho</button>
+    </nav>
+    <div id="controls" class="controls">
+      <button id="play" class="primary" type="button">▶ Iniciar</button>
+      <button id="step" type="button" title="Avançar um candle">+1 min</button>
+      <label>Velocidade
+        <select id="speed">
+          <option value="1">1x (tempo real)</option>
+          <option value="10">10x</option>
+          <option value="60">60x</option>
+          <option value="300">300x</option>
+          <option value="0">máxima</option>
+        </select>
+      </label>
+    </div>
+    <span id="clock" class="clock"></span>
+  </div>
   <div class="session">
     <span id="mode" class="chip"></span>
     <span id="model" class="chip" title=""></span>
     <span id="period" class="chip"></span>
     <span id="currency" class="chip"></span>
-    <span id="clock" class="clock"></span>
   </div>
-  <div id="controls" class="controls">
-    <button id="play" type="button">▶ Iniciar</button>
-    <button id="step" type="button" title="Avançar um candle">+1 min</button>
-    <label>Velocidade
-      <select id="speed">
-        <option value="1">1x (tempo real)</option>
-        <option value="10">10x</option>
-        <option value="60">60x</option>
-        <option value="300">300x</option>
-        <option value="0">máxima</option>
-      </select>
-    </label>
-  </div>
-  <nav>
-    <button class="tab active" data-tab="painel" type="button">Painel</button>
-    <button class="tab" data-tab="diario" type="button">Diário de operações</button>
-    <button class="tab" data-tab="desempenho" type="button">Desempenho</button>
-  </nav>
 </header>
 
 <main>
-  <section id="painel" class="view active">
+  <section id="painel" class="view active" role="tabpanel">
     <div class="layout">
       <div class="charts">
         <div id="chart" class="chart"></div>
@@ -53,6 +56,8 @@
       <aside>
         <div class="card" id="thinking">
           <h2>O que o modelo vê agora</h2>
+          <div id="d-action" class="action"></div>
+          <p id="d-reason" class="reason"></p>
           <div id="decision-empty" class="muted">Aguardando a primeira janela completa de 30 minutos.</div>
           <dl id="decision" hidden>
             <dt>Decidido em</dt><dd id="d-time"></dd>
@@ -62,8 +67,6 @@
             <dt>Confiança calibrada</dt><dd id="d-conf" class="muted"></dd>
             <dt>Volatilidade recente</dt><dd id="d-vol"></dd>
           </dl>
-          <div id="d-action" class="action"></div>
-          <p id="d-reason" class="reason"></p>
           <p id="d-quality" class="muted small"></p>
         </div>
         <div class="card" id="position-card">
@@ -94,7 +97,7 @@
     </div>
   </section>
 
-  <section id="diario" class="view">
+  <section id="diario" class="view" role="tabpanel">
     <p class="muted">Colunas em cinza são <b>retrospectivas</b>: usam preços posteriores à saída, aparecem 30 minutos depois dela e nunca alimentam o modelo.</p>
     <div class="table-wrap">
       <table id="trades">
@@ -111,7 +114,7 @@
     </div>
   </section>
 
-  <section id="desempenho" class="view">
+  <section id="desempenho" class="view" role="tabpanel">
     <div id="warning" class="warning" hidden></div>
     <div class="cards" id="metrics"></div>
     <div class="grid2">
@@ -128,7 +131,7 @@
 </main>
 
 <div id="detail" class="modal" hidden>
-  <div class="modal-body">
+  <div class="modal-body" role="dialog" aria-modal="true" aria-labelledby="detail-title">
     <button id="close-detail" class="close" type="button" aria-label="Fechar">×</button>
     <h2 id="detail-title"></h2>
     <div id="detail-chart" class="chart"></div>
@@ -140,7 +143,7 @@
   </div>
 </div>
 
-<footer>Gráficos: <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView Lightweight Charts</a> (Apache 2.0).</footer>
+<footer>Fonte Archivo (SIL OFL 1.1). Gráficos: <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView Lightweight Charts</a> (Apache 2.0).</footer>
 <script src="/static/vendor/lightweight-charts.standalone.production.js"></script>
 <script src="/static/app.js"></script>
 </body>
