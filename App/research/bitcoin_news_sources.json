@@ -1,0 +1,130 @@
+{
+  "researched_on": "2026-10-27",
+  "scope": "Pesquisa documental dirigida a dez episódios extremos; não é um feed exaustivo de notícias.",
+  "sources": [
+    {
+      "source_id": "N01", "publisher": "Organização Mundial da Saúde",
+      "title": "WHO Director-General's opening remarks — 11 March 2020",
+      "url": "https://www.who.int/news-room/speeches/item/who-director-general-s-opening-remarks-at-the-media-briefing-on-covid-19---11-march-2020",
+      "publication_date": "2020-03-11", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2020-03-11",
+      "summary": "A OMS caracteriza COVID-19 como pandemia. Contexto anterior ao episódio de março, sem identificação do gatilho de um candle.",
+      "source_type": "primary_official_speech"
+    },
+    {
+      "source_id": "N02", "publisher": "BitMEX",
+      "title": "How We Are Responding to the 13 March DDoS Attacks",
+      "url": "https://www.bitmex.com/blog/how-we-are-responding-to-last-weeks-ddos-attacks",
+      "publication_date": "2020-03-16", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "2020-03-13T02:16:00Z", "event_date": "2020-03-13",
+      "summary": "A operadora relata ataque e interrupção às 02:16 UTC em 13/03. O documento posterior não demonstra que a interrupção causou a reversão de preço na Binance.",
+      "source_type": "primary_operator_postmortem"
+    },
+    {
+      "source_id": "N03", "publisher": "China Internet Finance Association / China Banking Association / Payment and Clearing Association of China",
+      "title": "Announcement on preventing risks of speculation in virtual-currency transactions",
+      "url": "https://www.xinhuanet.com/fortune/2021-05/18/c_1127461941.htm",
+      "original_url": "https://www.china-cba.net/Index/show/catid/15/id/39462.html",
+      "publication_date": "2021-05-18", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2021-05-18",
+      "summary": "Comunicado integral das três associações alerta para riscos e restringe atividades de membros com moedas virtuais. Texto primário republicado pela Xinhua, creditado ao canal do PBoC; o original consta do catálogo da CBA, mas a consulta à sua página específica excedeu o tempo limite. Não é a decisão de mineração de 21/05.",
+      "source_type": "primary_statement_republished"
+    },
+    {
+      "source_id": "N04", "publisher": "Binance Futures",
+      "title": "May Trading Report: Cryptocurrencies' Worst Month Since March 2020",
+      "url": "https://www.binance.com/en/blog/all/421499824684902170",
+      "publication_date": "2021-06-09", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2021-05-19",
+      "summary": "Relatório retrospectivo documenta a queda de 19/05 e redução do open interest após liquidações. Mistura notícias de diferentes dias do mês; não atribuir notícia posterior ao minuto do choque.",
+      "source_type": "primary_market_operator_report"
+    },
+    {
+      "source_id": "N05", "publisher": "CSRC / autoridades chinesas signatárias",
+      "title": "Announcement on preventing financial risks of token issuance",
+      "url": "https://www.csrc.gov.cn/csrc/c100028/c1001463/content.shtml",
+      "publication_date": "2017-09-04", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2017-09-04",
+      "summary": "Comunicado oficial restringe ICOs e atividades de plataformas. Onze dias anterior ao rebote selecionado; serve de contexto regulatório, sem explicar seu gatilho ou direção.",
+      "source_type": "primary_official_statement"
+    },
+    {
+      "source_id": "N06", "publisher": "Financial Supervisory Service, via KDI Economic Information Center",
+      "title": "Constituição e operação de força-tarefa sobre moedas virtuais",
+      "url": "https://eiec.kdi.re.kr/policy/materialView.do?num=173028",
+      "publication_date": "2018-01-16", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2018-01-16",
+      "summary": "Comunicado do FSS anuncia força-tarefa para 17/01 e supervisão de instituições financeiras e contas de cripto. Contexto do dia, sem comprovar causa do rebote às 22:58 UTC.",
+      "source_type": "primary_official_release_archived_by_research_institute"
+    },
+    {
+      "source_id": "N07", "publisher": "Genesis Trading Research",
+      "title": "Monthly Market Review — December 2021, p. 7",
+      "url": "https://info.genesistrading.com/hubfs/monthly-reviews/2021/21-december-market-review.pdf",
+      "publication_date": "", "publication_precision": "unknown", "published_at_utc": "",
+      "document_reference_period": "2021-12",
+      "event_time_utc": "", "event_date": "2021-12-04",
+      "summary": "A seção sobre 3–4/12 descreve desalavancagem, pouca liquidez no fim de semana e liquidações em cascata. Publicação exata não verificada; relatório retrospectivo, sem identificar uma manchete intraminuto isolada.",
+      "source_type": "financial_company_research_publication"
+    },
+    {
+      "source_id": "N08", "publisher": "Crypto Facilities",
+      "title": "Announcing Segwit2x Hard Fork Policy — atualização de cancelamento",
+      "url": "https://crypto-facilities.ghost.io/announcing-segwit2x-hard-fork-policy/",
+      "publication_date": "2017-11-08", "publication_precision": "minute_of_update", "published_at_utc": "2017-11-08T18:00:00Z",
+      "original_page_date": "2017-10-31", "event_time_utc": "", "event_date": "2017-11-08",
+      "summary": "A página do operador registra em atualização de 08/11 às 18:00 UTC o cancelamento do fork SegWit2x. Mais de três dias anterior ao rebote de 12/11; contexto de incerteza, não gatilho provado.",
+      "source_type": "primary_operator_announcement_with_updates"
+    },
+    {
+      "source_id": "N09", "publisher": "Binance Futures",
+      "title": "May Trading Report: How Has Bitcoin Halving Impact Markets and Miners?",
+      "url": "https://www.binance.com/en/blog/all/421499824684900622",
+      "publication_date": "2020-06-02", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2020-05-10",
+      "summary": "Relatório posterior descreve venda e liquidações antes do halving, com destaque ao volume e posicionamento de 10/05. O halving subsequente era um evento programado, não uma surpresa que ocorreu no minuto da queda.",
+      "source_type": "primary_market_operator_report"
+    },
+    {
+      "source_id": "N10", "publisher": "Fundo Monetário Internacional",
+      "title": "El Salvador: Staff Concluding Statement of the 2021 Article IV Mission",
+      "url": "https://www.imf.org/en/news/articles/2021/11/22/mcs-el-salvador-staff-concluding-statement-of-the-2021-article-iv-mission",
+      "publication_date": "2021-11-22", "publication_precision": "day", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2021-09-07",
+      "summary": "Confirma retrospectivamente a adoção de Bitcoin como moeda legal em 07/09/2021. Coincidência de data com a queda não comprova que a adoção provocou a venda às 15:10 UTC.",
+      "source_type": "official_institutional_report"
+    },
+    {
+      "source_id": "N11", "publisher": "FSA Institute, Financial Services Agency do Japão",
+      "title": "Discussion Paper DP2017-7, março de 2018, cronologia p. 27 do PDF",
+      "url": "https://www.fsa.go.jp/frtc/seika/discussion/2017/DP2017-7.pdf",
+      "publication_date": "2018-03", "publication_precision": "month", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "2018-01-11",
+      "summary": "Estudo do instituto registra declarações coreanas sobre fechamento de exchanges em 11/01 e esclarecimentos posteriores. Pesquisa institucional retrospectiva, opiniões dos autores; não estabelece horário de anúncio nem causa do candle da Binance.",
+      "source_type": "institutional_research_discussion_paper"
+    },
+    {
+      "source_id": "N12", "publisher": "Raphael Auer e Stijn Claessens / BIS Quarterly Review",
+      "title": "Regulating cryptocurrencies: assessing market reactions",
+      "url": "https://www.bis.org/publ/qtrpdf/r_qt1809f.pdf",
+      "publication_date": "2018-09", "publication_precision": "month", "published_at_utc": "",
+      "event_time_utc": "", "event_date": "",
+      "summary": "Estudo de eventos sobre reações intradiárias a anúncios regulatórios. Fundamenta a necessidade de amostra de notícias selecionada independentemente dos extremos, com horários conhecidos e comparação temporal.",
+      "source_type": "institutional_research_publication"
+    }
+  ],
+  "associations": [
+    {"event_id": "E01", "source_id": "N01", "association": "context_only", "category": "pandemic", "assessment": "Contexto sanitário antecedente; não isola o gatilho financeiro de 12–13/03."},
+    {"event_id": "E01", "source_id": "N02", "association": "documented_incident_temporal_overlap", "category": "exchange_disruption", "assessment": "Incidente relatado às 02:16 UTC, 29 minutos antes do pico e dentro de sua janela de 30 minutos. Associação temporal precisa; causalidade não identificada. Documento publicado três dias depois."},
+    {"event_id": "E02", "source_id": "N03", "association": "antecedent_regulatory_context", "category": "regulation", "assessment": "Comunicado do dia anterior, compatível com pressão regulatória. Horário exato não verificado; não isola causa da queda de 30 minutos."},
+    {"event_id": "E02", "source_id": "N04", "association": "retrospective_market_mechanism", "category": "liquidation_deleveraging", "assessment": "A própria operadora documenta liquidações e queda do open interest no episódio. Relatório posterior não pode ser atributo anterior ao evento."},
+    {"event_id": "E03", "source_id": "N05", "association": "context_only", "category": "regulation", "assessment": "Restrição regulatória onze dias antes; não comprova por que houve recuperação de 18,72% naquele intervalo."},
+    {"event_id": "E04", "source_id": "N06", "association": "same_date_context_only", "category": "regulation", "assessment": "Atividade regulatória documentada em 16/01; vínculo do comunicado com a recuperação de 18,24% não estabelecido."},
+    {"event_id": "E05", "source_id": "N07", "association": "retrospective_market_mechanism", "category": "liquidation_deleveraging", "assessment": "Pesquisa de mercado identifica liquidez reduzida e alavancagem no choque de 3–4/12; gatilho de notícia isolado não demonstrado."},
+    {"event_id": "E06", "source_id": "", "association": "unresolved", "category": "unknown", "assessment": "Não localizada fonte primária ou acadêmica suficiente para atribuir causa ao intervalo. Não transformar relatos secundários de indisponibilidade em causa confirmada."},
+    {"event_id": "E07", "source_id": "N08", "association": "context_only", "category": "protocol_fork_uncertainty", "assessment": "Cancelamento do fork foi divulgado dias antes; não explica sozinho o rebote de 12/11. Relação de contexto, sem causalidade."},
+    {"event_id": "E08", "source_id": "N09", "association": "retrospective_market_mechanism", "category": "pre_halving_liquidations", "assessment": "Relatório da operadora documenta liquidações na venda pré-halving de 10/05. Não identifica nova notícia como gatilho intraminuto."},
+    {"event_id": "E09", "source_id": "N10", "association": "same_date_context_only", "category": "sovereign_adoption", "assessment": "Adoção em El Salvador ocorreu na mesma data; não há identificação causal da queda do intervalo com essa medida."},
+    {"event_id": "E10", "source_id": "N11", "association": "same_date_context_only", "category": "regulation", "assessment": "Estudo institucional registra declarações coreanas naquela data; horário exato e causalidade do candle não estabelecidos."}
+  ]
+}

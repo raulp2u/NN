@@ -1,0 +1,2 @@
+# Apenas para o validador de skills; App usa somente biblioteca padrão.
+PyYAML==6.0.3
