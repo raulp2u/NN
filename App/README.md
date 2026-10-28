@@ -2,7 +2,7 @@
 
 Para os dados reais de Bitcoin e janelas de 30 minutos, consulte [DADOS_BITCOIN.md](DADOS_BITCOIN.md). O exemplo abaixo continua sendo artificial para demonstração isolada do simulador.
 
-Protótipo local em Python 3.10+ (verificado em 3.14), somente biblioteca padrão. Analisa candles numéricos e emite COMPRAR, VENDER ou AGUARDAR por médias móveis. Não contém modelo aprendido. VENDER encerra uma posição comprada; não abre venda descoberta.
+Protótipo local em Python, somente biblioteca padrão (verificado em 3.14; os demais scripts de App requerem 3.12+). Analisa candles numéricos e emite COMPRAR, VENDER ou AGUARDAR por médias móveis. Não contém modelo aprendido. VENDER encerra uma posição comprada; não abre venda descoberta.
 
 Na raiz do projeto, PowerShell:
 

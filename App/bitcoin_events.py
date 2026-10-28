@@ -191,7 +191,9 @@ def main():
         event["event_id"] = f"E{number:02}"
         index = event["index"]
         event["return_30m_pct"] = None if np.isnan(v30[index]) else float(100*np.expm1(v30[index]*30/100))
-        event["return_1m_pct"] = float(100*(prices[index]/prices[index-1]-1))
+        # Como as derivadas, o retorno de 1m não atravessa lacunas.
+        event["return_1m_pct"] = (float(100*(prices[index]/prices[index-1]-1))
+                                  if times[index] - times[index-1] == 60 else None)
     write_csv(args.out / "research_events.csv", selected)
     (args.out / "analysis_manifest.json").write_text(json.dumps({
         "created_utc": datetime.now(timezone.utc).isoformat(), "source_sha256": actual,

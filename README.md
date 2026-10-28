@@ -18,13 +18,14 @@ Laboratório de pesquisa financeira com histórico de Bitcoin, janelas de 30 min
 - Análise de velocidades e acelerações, rankings e relações documentais com notícias.
 - Simulador com custos, relatórios JSON/CSV e gráfico SVG; exemplo sintético incluído.
 - Arquitetura neural com ramos numérico e textual, fusão e treinamento supervisionado documentada.
-- Ambiente PyTorch CPU, Transformers, Polars, scikit-learn e TensorBoard verificado; 31 testes passaram.
+- Ambiente PyTorch CPU, Transformers, Polars, scikit-learn e TensorBoard verificado.
+- 35 testes automatizados, incluindo validação das skills e do catálogo de notícias, executados no GitHub Actions a cada push e pull request (Python 3.12 e 3.14).
 
 Ainda não há rede financeira treinada, corpus histórico suficiente de notícias, validação econômica fora da amostra ou conexão a corretora. Os testes verificam o software, sem comprovar rentabilidade.
 
 ## Executar no Windows
 
-O simulador básico usa somente a biblioteca padrão, Python 3.10+. O ambiente completo foi verificado no Windows com Python 3.14.7.
+O ambiente completo requer Python 3.12+ (exigência do NumPy fixado) e foi verificado no Windows com Python 3.14.7. O simulador básico usa somente a biblioteca padrão.
 
 ```powershell
 python -m venv .venv
@@ -52,4 +53,4 @@ Os arquivos reais grandes em App/data, resultados em App/results, ambiente .venv
 .venv/Scripts/python.exe App/bitcoin_event_news.py
 ```
 
-O coletor preserva datasets já concluídos; use outra pasta para uma nova versão. Os dados são de BTC/USDT spot de uma bolsa e não representam o histórico global de Bitcoin. Para validar as skills, instale também requirements-dev.txt. O histórico de decisões está em Planos; commits seguem a exigência de entendimento humano de Agents.md.
+O coletor preserva datasets já concluídos; use outra pasta para uma nova versão. Os dados são de BTC/USDT spot de uma bolsa e não representam o histórico global de Bitcoin. Para validar as skills localmente, instale também requirements-dev.txt; sem PyYAML esse teste é ignorado. O histórico de decisões está em Planos; commits seguem a exigência de entendimento humano de Agents.md.

@@ -27,6 +27,7 @@ def validate(candles, interval_seconds=3600):
         raise ValueError("CSV sem candles")
     if not isinstance(interval_seconds, int) or interval_seconds <= 0:
         raise ValueError("Intervalo deve ser inteiro positivo em segundos")
+    now = datetime.now(timezone.utc)
     for index, c in enumerate(candles):
         values = (c.open, c.high, c.low, c.close, c.volume)
         if not all(math.isfinite(x) for x in values):
@@ -37,7 +38,7 @@ def validate(candles, interval_seconds=3600):
             raise ValueError(f"Candle {index}: OHLC inconsistente")
         if c.timestamp.tzinfo is None or c.timestamp.utcoffset() != timedelta(0):
             raise ValueError(f"Candle {index}: timestamp deve ser UTC explícito")
-        if c.timestamp + timedelta(seconds=interval_seconds) > datetime.now(timezone.utc):
+        if c.timestamp + timedelta(seconds=interval_seconds) > now:
             raise ValueError(f"Candle {index}: candle ainda não fechado")
         if index and (c.timestamp - candles[index - 1].timestamp).total_seconds() != interval_seconds:
             raise ValueError(f"Candle {index}: lacuna, duplicata ou ordem temporal inválida")
