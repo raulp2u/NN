@@ -1,0 +1,144 @@
+{
+  "created_utc": "2026-10-28T00:19:56.686432+00:00",
+  "config": {
+    "seed": 42,
+    "epochs_limit": 20,
+    "patience": 4,
+    "batch_size": 512,
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "ridge_alpha": 10.0,
+    "loss": "MSE_on_train_standardized_target",
+    "device": "cpu",
+    "threads": 4,
+    "selection_metric": "validation_mse_log_return",
+    "dataset_manifest_sha256": "569d463557e3a39910f5734f55d896a1cb466855860bce45b066bda3560b20c9",
+    "channels": [
+      "log_open",
+      "log_high",
+      "log_low",
+      "log_close",
+      "log1p_volume",
+      "close_difference",
+      "close_acceleration",
+      "log_body"
+    ],
+    "versions": {
+      "torch": "2.14.1+cpu",
+      "numpy": "2.5.4",
+      "polars": "2.1.0",
+      "scikit-learn": "1.9.1"
+    }
+  },
+  "counts": {
+    "train": 128089,
+    "validation": 16015,
+    "test": 16015
+  },
+  "epochs_executed": 6,
+  "best_cnn_epoch": 2,
+  "cnn_parameters": 2513,
+  "selected_by_validation": "cnn",
+  "validation": {
+    "zero": {
+      "mse_log_return": 1.1457168059964051e-05,
+      "rmse_log_return": 0.0033848438752716575,
+      "mae_log_return": 0.0021829013489064663,
+      "r2": -3.975362148356254e-07,
+      "direction_accuracy_on_nonzero_predictions": null,
+      "nonzero_prediction_fraction": 0.0
+    },
+    "ridge": {
+      "mse_log_return": 1.1599395328417067e-05,
+      "rmse_log_return": 0.003405788503183524,
+      "mae_log_return": 0.0021957309586558794,
+      "r2": -0.012414226525117034,
+      "direction_accuracy_on_nonzero_predictions": 0.5014049328754293,
+      "nonzero_prediction_fraction": 1.0
+    },
+    "cnn": {
+      "mse_log_return": 1.14197163280888e-05,
+      "rmse_log_return": 0.0033793070780988223,
+      "mae_log_return": 0.002181764917503288,
+      "r2": 0.0032684509757086033,
+      "direction_accuracy_on_nonzero_predictions": 0.5014049328754293,
+      "nonzero_prediction_fraction": 1.0
+    }
+  },
+  "test_retrospective": {
+    "zero": {
+      "mse_log_return": 1.0557765913304986e-05,
+      "rmse_log_return": 0.003249271597343778,
+      "mae_log_return": 0.002066484728030231,
+      "r2": -6.3372606968759015e-06,
+      "direction_accuracy_on_nonzero_predictions": null,
+      "nonzero_prediction_fraction": 0.0
+    },
+    "ridge": {
+      "mse_log_return": 1.0642642450225596e-05,
+      "rmse_log_return": 0.0032623063084611776,
+      "mae_log_return": 0.0020796710140047314,
+      "r2": -0.008045639846330888,
+      "direction_accuracy_on_nonzero_predictions": 0.5057758351545426,
+      "nonzero_prediction_fraction": 1.0
+    },
+    "cnn": {
+      "mse_log_return": 1.054742764326292e-05,
+      "rmse_log_return": 0.003247680348073517,
+      "mae_log_return": 0.0020661900623831953,
+      "r2": 0.0009728789525883519,
+      "direction_accuracy_on_nonzero_predictions": 0.5030908523259444,
+      "nonzero_prediction_fraction": 1.0
+    }
+  },
+  "financial_test_retrospective": {
+    "zero": {
+      "net_return": 0.0,
+      "max_drawdown_at_horizon_closes": 0.0,
+      "round_trips": 0,
+      "orders": 0,
+      "prediction_hurdle_log_return": 0.0030000007500002963,
+      "fee_bps_per_side": 10.0,
+      "slippage_bps_per_side": 5.0,
+      "cash_return": 0.0,
+      "buy_hold_terminal_return": -0.12540748508046573
+    },
+    "ridge": {
+      "net_return": 0.00471904182996119,
+      "max_drawdown_at_horizon_closes": 0.003709034842212078,
+      "round_trips": 3,
+      "orders": 6,
+      "prediction_hurdle_log_return": 0.0030000007500002963,
+      "fee_bps_per_side": 10.0,
+      "slippage_bps_per_side": 5.0,
+      "cash_return": 0.0,
+      "buy_hold_terminal_return": -0.12540748508046573
+    },
+    "cnn": {
+      "net_return": 0.04692181012389951,
+      "max_drawdown_at_horizon_closes": 0.0,
+      "round_trips": 2,
+      "orders": 4,
+      "prediction_hurdle_log_return": 0.0030000007500002963,
+      "fee_bps_per_side": 10.0,
+      "slippage_bps_per_side": 5.0,
+      "cash_return": 0.0,
+      "buy_hold_terminal_return": -0.12540748508046573
+    }
+  },
+  "limitations": [
+    "Histórico já explorado; teste retrospectivo não é comprovação prospectiva independente",
+    "Somente preços; nenhum ramo de notícias treinado",
+    "Política de operações de 30m usa preenchimento idealizado na abertura seguinte",
+    "Drawdown amostrado no fim de cada horizonte; sem máxima perda intraperíodo",
+    "Sem impostos, spread dinâmico, impacto ou latência; custos hipotéticos fixos"
+  ],
+  "artifacts": {
+    "cnn.pt": "c5c1eb2a9bfd94ced8cbd0062ef15ae81fbbabae7f749aaf16cd3b5147cc9e39",
+    "ridge.npz": "f1d6ee3ad87a40026fa869108f9fff860581cd6c391ed6f47a879094057eb153",
+    "scalers.npz": "afc83701e8997298dc8153e5e96dfa26e12835700638d575af2759f8b87ebb36",
+    "config.json": "c89463e5cf212820c23a6e034a39a0e5abbc42299f2a84e334e4f1a4243b4c93"
+  },
+  "financial_evaluation_revision": "Barreira exata log((1+taxa)/(1-taxa)) + log((1+slippage)/(1-slippage)); mesmas previsões, operações e retornos, sem retreino."
+}

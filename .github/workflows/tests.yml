@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      # PyTorch e Transformers ficam fora: nenhum teste os importa.
-      - run: python -m pip install -r requirements-analysis.txt -r requirements-dev.txt
+      # CNN e dataset são verificados em CPU, sem baixar modelos de linguagem.
+      - run: python -m pip install -r requirements-torch-cpu.txt
+      - run: python -m pip install -r requirements-numeric.txt -r requirements-dev.txt
       - run: python -m unittest discover -s App -p "test_*.py" -v

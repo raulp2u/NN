@@ -1,6 +1,3 @@
 # Instalar requirements-torch-cpu.txt primeiro para o ambiente CPU verificado.
--r requirements-analysis.txt
-scikit-learn==1.9.1
-polars==2.1.0
+-r requirements-numeric.txt
 transformers==5.21.0
-tensorboard==2.21.0

@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-28T00:18:39.995551+00:00",
+  "input_hashes": {
+    "snapshots_30m.csv": "282e209eb0249e41c6496e390b7b4cb37ced22d2fe4f3e82a7062357e92b1178",
+    "splits.csv": "d568ff28a7b16fc5cc8e649d476ddfd81ea04ae6a1ad52a4f7b987070de56f17"
+  },
+  "input_windows": 160156,
+  "accepted": 160119,
+  "counts": {
+    "train": 128089,
+    "validation": 16015,
+    "test": 16015
+  },
+  "reasons": {
+    "accepted": 160119,
+    "future_gap": 34,
+    "no_future": 1,
+    "split_boundary": 2
+  },
+  "shape_per_example": [
+    8,
+    30
+  ],
+  "feature_channels": [
+    "log_open",
+    "log_high",
+    "log_low",
+    "log_close",
+    "log1p_volume",
+    "close_difference",
+    "close_acceleration",
+    "log_body"
+  ],
+  "feature_layout": "channel_first_flattened_8x30_float32",
+  "price_feature_unit": "100*log(price/first_open_of_input)",
+  "target": "log(close(t+30min)/close(t))",
+  "target_unit": "decimal_log_return",
+  "normalization": "Nenhum ajuste global; scaler será ajustado somente no treino",
+  "future_metadata_never_features": [
+    "target_log_return",
+    "execution_open_future",
+    "exit_close_future",
+    "target_end_epoch"
+  ],
+  "label_boundary_rule": "target_end <= split_end; próxima janela contígua e da mesma divisão",
+  "original_boundaries": {
+    "train": {
+      "first_start_utc": "2017-08-17T04:00:00Z",
+      "last_available_at_utc": "2024-12-28T16:00:00Z"
+    },
+    "validation": {
+      "first_start_utc": "2024-12-28T16:00:00Z",
+      "last_available_at_utc": "2025-11-27T08:00:00Z"
+    },
+    "test": {
+      "first_start_utc": "2025-11-27T08:00:00Z",
+      "last_available_at_utc": "2026-10-27T00:00:00Z"
+    }
+  },
+  "products": [
+    {
+      "path": "train.parquet",
+      "sha256": "a4e574e2fe67e828c30becb4e01a5e59cd1e39058dc24cd2b1a578576f8ab421",
+      "bytes": 101836979
+    },
+    {
+      "path": "validation.parquet",
+      "sha256": "7279398d113f995692f6f7428b3b69dbe8a240e185d015e6b1f9ffafa6bfc106",
+      "bytes": 11803330
+    },
+    {
+      "path": "test.parquet",
+      "sha256": "881018e24182d32c2d83796d1b719da891afe620ed2d4ef1331fb97b4d58b24d",
+      "bytes": 11794022
+    }
+  ],
+  "evaluation_scope": "Desenvolvimento retrospectivo; histórico já explorado. Exige avaliação prospectiva independente."
+}

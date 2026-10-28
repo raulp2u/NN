@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "examples_checked": 160119,
+  "split_counts": {
+    "train": 128089,
+    "validation": 16015,
+    "test": 16015
+  },
+  "train_only_scaler_verified": true,
+  "future_targets_recomputed": true,
+  "split_boundaries_verified": true,
+  "cnn_test_predictions_reproduced": 16015,
+  "checkpoint_hash_verified": true,
+  "trade_accounting_verified": true,
+  "scope": "Verificação de software e reprodução; sem inferência de rentabilidade futura"
+}

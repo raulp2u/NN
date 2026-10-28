@@ -1,0 +1,31 @@
+{
+  "seed": 42,
+  "epochs_limit": 20,
+  "patience": 4,
+  "batch_size": 512,
+  "optimizer": "AdamW",
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "ridge_alpha": 10.0,
+  "loss": "MSE_on_train_standardized_target",
+  "device": "cpu",
+  "threads": 4,
+  "selection_metric": "validation_mse_log_return",
+  "dataset_manifest_sha256": "569d463557e3a39910f5734f55d896a1cb466855860bce45b066bda3560b20c9",
+  "channels": [
+    "log_open",
+    "log_high",
+    "log_low",
+    "log_close",
+    "log1p_volume",
+    "close_difference",
+    "close_acceleration",
+    "log_body"
+  ],
+  "versions": {
+    "torch": "2.14.1+cpu",
+    "numpy": "2.5.4",
+    "polars": "2.1.0",
+    "scikit-learn": "1.9.1"
+  }
+}
