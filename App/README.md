@@ -2,6 +2,8 @@
 
 Para os dados reais de Bitcoin e janelas de 30 minutos, consulte [DADOS_BITCOIN.md](DADOS_BITCOIN.md). O exemplo abaixo continua sendo artificial para demonstração isolada do simulador.
 
+Para ver o modelo operando no gráfico, em replay ou ao vivo em simulação, consulte [INTERFACE.md](INTERFACE.md).
+
 O primeiro modelo aprendido numérico está em train_numeric.py, com gerador supervised_data.py e auditoria audit_numeric.py. Veja [o relatório de treinamento](../Relatorios/numerico_v1/README.md). O simulador de médias móveis descrito abaixo continua separado desse modelo. A suíte completa de testes requer requirements-torch-cpu.txt, requirements-numeric.txt e requirements-dev.txt.
 
 Protótipo local em Python, somente biblioteca padrão (verificado em 3.14; os demais scripts de App requerem 3.12+). Analisa candles numéricos e emite COMPRAR, VENDER ou AGUARDAR por médias móveis. Não contém modelo aprendido. VENDER encerra uma posição comprada; não abre venda descoberta.
