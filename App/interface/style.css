@@ -103,7 +103,7 @@ dl > :nth-child(1), dl > :nth-child(2) { border-top: none; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 1px; margin-right: 5px; vertical-align: -1px; }
 .swatch.up { background: var(--up); } .swatch.down { background: var(--down); } .swatch.attr { background: linear-gradient(90deg, var(--down), var(--up)); }
 .dash { display: inline-block; width: 18px; border-top: 2px dashed; margin-right: 5px; vertical-align: middle; }
-.dash.target { color: var(--up); } .dash.stop { color: var(--down); } .dash.even { color: var(--even); border-top-style: dotted; } .dash.forecast { color: var(--forecast); }
+.dash.target { color: var(--up); } .dash.stop { color: var(--down); } .dash.even { color: var(--even); border-top-style: dotted; } .dash.forecast { color: var(--forecast); } .dash.range { color: color-mix(in srgb, var(--forecast) 60%, transparent); border-top-style: dotted; }
 .alerts { list-style: none; padding: 0; margin: 8px 0 0; max-height: 140px; overflow: auto; font-size: 12px; }
 .alerts li { padding: 3px 0; border-top: 1px solid var(--grid); }
 .alerts .warning { color: var(--warn); }

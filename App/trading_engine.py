@@ -47,6 +47,12 @@ class Signal:
     stop_distance: float | None = None    # distância log prevista até o stop
     target_distance: float | None = None  # distância log prevista até o alvo
     details: dict = field(default_factory=dict)
+    # Faixa do retorno log no horizonte: {"low", "high", "coverage"}; só informativa.
+    interval: dict | None = None
+    # Por lado (1, -1): {"p_target", "p_stop", "p_time", "stop_distance", "target_distance",
+    # "time_return"}. Presente, o motor decide pelo valor esperado após custos.
+    sides: dict | None = None
+    ev_margin: float | None = 0.0  # None: a calibração não achou política lucrativa; não opera
 
 
 @dataclass(frozen=True)
@@ -81,6 +87,41 @@ class Settings:
         if side == -1:
             cost += self.borrow_bps_per_hour / 10000 * minutes / 60
         return cost
+
+
+def net_fraction(side, entry_open, exit_raw, minutes, fee_bps, slippage_bps, borrow_bps_per_hour):
+    """Resultado líquido por unidade de valor aplicado, com a aritmética de Engine._open/_close.
+    Só operadores aritméticos: aceita números ou arrays NumPy (side em {1, -1})."""
+    fee, slip = fee_bps / 10000, slippage_bps / 10000
+    long = (side + 1) / 2
+    units = long / (entry_open * (1 + slip) * (1 + fee)) + (1 - long) / (entry_open * (1 - slip))
+    price_in, price_out = entry_open * (1 + side * slip), exit_raw * (1 - side * slip)
+    gross = units * (exit_raw - entry_open) * side
+    costs = units * slip * (exit_raw + entry_open) + units * fee * (price_out + price_in)
+    return gross - costs - (1 - long) * borrow_bps_per_hour / 10000 * minutes / 60
+
+
+def first_touch(path, side, stop_distance, target_distance):
+    """Desfecho de uma entrada na abertura de path[0], com as regras de Engine._manage.
+
+    path: [(open, high, low, close)] dos candles após a decisão, até o horizonte.
+    Abertura além de um nível executa na abertura; stop e alvo no mesmo candle contam
+    como stop. Retorna (motivo, preço bruto de saída, minutos na posição)."""
+    entry = path[0][0]
+    stop = entry * math.exp(-side * stop_distance) if stop_distance else None
+    target = entry * math.exp(side * target_distance) if target_distance else None
+    for j, (o, high, low, _) in enumerate(path):
+        if j:
+            if stop and (o - stop) * side <= 0:
+                return "stop", o, j
+            if target and (o - target) * side >= 0:
+                return "alvo", o, j
+        favorable, adverse = (high, low) if side == 1 else (low, high)
+        if stop and (adverse - stop) * side <= 0:
+            return "stop", stop, j + .5
+        if target and (favorable - target) * side >= 0:
+            return "alvo", target, j + .5
+    return "tempo", path[-1][3], len(path)
 
 
 def volatility(bars, horizon):
@@ -198,7 +239,12 @@ class Engine:
         self.recent.append(bar)
         events += self._resolve(bar)
         events.append(self._equity(bar))
-        signal = self.model.update(bar)
+        if self.warming and hasattr(self.model, "observe"):
+            # Modelos com janela longa só guardam o candle no aquecimento, sem inferência.
+            self.model.observe(bar)
+            signal = None
+        else:
+            signal = self.model.update(bar)
         if signal is not None:
             events += self._decide(bar, signal)
         self.previous = bar
@@ -218,7 +264,26 @@ class Engine:
         current = self.position["side"] if self.position else 0
         horizon = signal.horizon_minutes or s.horizon_minutes or 30
         desired, reason_text = signal.direction, signal.reason
-        if desired is None:
+        values, evaluated = None, None
+        stop_distance, target_distance = signal.stop_distance, signal.target_distance
+        if desired is None and signal.sides:
+            values = {side: self._expected_value(side, v, horizon) for side, v in signal.sides.items()}
+            allowed = [side for side in values if side == 1 or s.allow_short]
+            evaluated = max(allowed or values, key=values.get)
+            text = " / ".join(f"{'compra' if side == 1 else 'venda'} {100 * value:+.3f}%"
+                              for side, value in sorted(values.items(), reverse=True))
+            if signal.ev_margin is None:
+                desired = 0
+                reason_text += f"; valor esperado após custos {text}; política sem margem lucrativa na calibração, não opera"
+            elif allowed and values[evaluated] > signal.ev_margin:
+                desired = evaluated
+                reason_text += f"; valor esperado após custos {text} supera a margem de {100 * signal.ev_margin:.3f}%"
+            else:
+                desired = 0
+                reason_text += f"; valor esperado após custos {text} não supera a margem de {100 * signal.ev_margin:.3f}%"
+            stop_distance = signal.sides[evaluated]["stop_distance"]
+            target_distance = signal.sides[evaluated]["target_distance"]
+        elif desired is None:
             predicted = signal.predicted_log_return
             long_cost, short_cost = s.hurdle(1), s.hurdle(-1, horizon)
             if predicted > long_cost:
@@ -263,15 +328,28 @@ class Engine:
                              predicted_log_return=signal.predicted_log_return,
                              horizon_minutes=signal.horizon_minutes, attributions=signal.attributions,
                              volatility=sigma, close=bar.close, details=signal.details,
-                             stop_distance=signal.stop_distance, target_distance=signal.target_distance,
-                             hurdle_long=s.hurdle(1), hurdle_short=s.hurdle(-1, horizon))
+                             stop_distance=stop_distance, target_distance=target_distance,
+                             hurdle_long=s.hurdle(1), hurdle_short=s.hurdle(-1, horizon),
+                             interval=signal.interval, sides=signal.sides, evaluated_side=evaluated,
+                             expected_values=values, ev_margin=signal.ev_margin if values else None)
         self._last_decision = record
         events = [record]
         if not self.warming and signal.predicted_log_return is not None and signal.horizon_minutes:
             self.outcomes.append({"decision_id": decision_id, "time": bar.open_time, "close": bar.close,
                                   "due": available + signal.horizon_minutes * MINUTE,
-                                  "predicted": signal.predicted_log_return})
+                                  "predicted": signal.predicted_log_return, "interval": signal.interval,
+                                  "side": evaluated, "probabilities": signal.sides[evaluated] if evaluated else None,
+                                  "stop_distance": stop_distance, "target_distance": target_distance})
         return events
+
+    def _expected_value(self, side, v, horizon):
+        """Resultado líquido esperado por unidade aplicada, entrando na próxima abertura (referência 1)."""
+        s = self.settings
+        def net(exit_log, minutes):
+            return net_fraction(side, 1.0, math.exp(exit_log), minutes, s.fee_bps, s.slippage_bps, s.borrow_bps_per_hour)
+        return (v["p_target"] * net(side * v["target_distance"], horizon / 2)
+                + v["p_stop"] * net(-side * v["stop_distance"], horizon / 2)
+                + v["p_time"] * net(v["time_return"], horizon))
 
     def _execute(self, bar):
         events = []
@@ -397,9 +475,21 @@ class Engine:
                 pending.append(item)
             elif item["due"] in closes:
                 realized = math.log(closes[item["due"]] / item["close"])
+                extra = {}
+                if item.get("interval"):
+                    extra["inside_interval"] = item["interval"]["low"] <= realized <= item["interval"]["high"]
+                if item.get("side"):
+                    # Desfecho real do lado avaliado, com os mesmos níveis e regras da operação.
+                    path = [(b.open, b.high, b.low, b.close) for b in self.recent
+                            if item["time"] < b.open_time < item["due"]]
+                    if len(path) == (item["due"] - item["time"]) // MINUTE - 1:
+                        category, _, _ = first_touch(path, item["side"], item["stop_distance"], item["target_distance"])
+                        extra.update(side=item["side"], category=category,
+                                     probabilities={key: item["probabilities"][key]
+                                                    for key in ("p_target", "p_stop", "p_time")})
                 events.append(self._event("outcome", bar.open_time, decision_id=item["decision_id"],
                                           decision_time=item["time"], predicted=item["predicted"],
-                                          realized=realized, error=item["predicted"] - realized))
+                                          realized=realized, error=item["predicted"] - realized, **extra))
         self.outcomes = pending
         pending = []
         for item in self.reviews:

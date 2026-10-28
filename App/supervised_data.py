@@ -16,10 +16,10 @@ PRICE_FIELDS = ("open", "high", "low", "close", "volume")
 
 
 def features(raw):
-    """raw: [N,30,5]. Retorna [N,8,30], sem ajuste estatístico global."""
+    """raw: [N,L,5] (L=30 no v1). Retorna [N,8,L], sem ajuste estatístico global."""
     raw = np.asarray(raw, dtype=np.float64)
-    if raw.ndim != 3 or raw.shape[1:] != (30, 5):
-        raise ValueError("Esperado OHLCV com formato [N,30,5]")
+    if raw.ndim != 3 or raw.shape[2] != 5 or raw.shape[1] < 3:
+        raise ValueError("Esperado OHLCV com formato [N,L,5] e L >= 3")
     if not np.isfinite(raw).all() or (raw[:, :, :4] <= 0).any() or (raw[:, :, 4] < 0).any():
         raise ValueError("OHLCV não finito ou fora do domínio")
     o, high, low, close = [raw[:, :, i] for i in range(4)]

@@ -47,7 +47,7 @@
         <div class="legend">
           <span><i class="swatch up"></i>compra</span><span><i class="swatch down"></i>venda a descoberto</span>
           <span><i class="dash target"></i>alvo</span><span><i class="dash stop"></i>stop</span>
-          <span><i class="dash even"></i>empate após custos</span><span><i class="dash forecast"></i>previsão 30 min</span>
+          <span><i class="dash even"></i>empate após custos</span><span><i class="dash forecast"></i>previsão 30 min</span><span><i class="dash range"></i>faixa de 90%</span>
           <span><i class="swatch attr"></i>influência de cada minuto na previsão (não é causa no mercado)</span>
         </div>
         <h3>Saldo acumulado <small>estratégia vs comprar e segurar o mesmo valor</small></h3>
@@ -62,9 +62,11 @@
           <dl id="decision" hidden>
             <dt>Decidido em</dt><dd id="d-time"></dd>
             <dt>Previsão 30 min</dt><dd id="d-pred"></dd>
-            <dt>Faixa de previsão</dt><dd class="muted">indisponível nesta versão</dd>
+            <dt>Faixa de previsão</dt><dd id="d-range" class="muted"></dd>
             <dt>Custo de ida e volta</dt><dd id="d-hurdle"></dd>
             <dt>Confiança calibrada</dt><dd id="d-conf" class="muted"></dd>
+            <dt>Stop e alvo</dt><dd id="d-levels" class="muted"></dd>
+            <dt>Valor esperado</dt><dd id="d-ev" class="muted"></dd>
             <dt>Volatilidade recente</dt><dd id="d-vol"></dd>
           </dl>
           <p id="d-quality" class="muted small"></p>
@@ -125,7 +127,8 @@
         <p class="muted small">Média móvel de 50 decisões. Se a linha do modelo não fica abaixo da de prever zero, a previsão não está ajudando.</p></div>
       <div class="card"><h2>Por lado e tipo de saída</h2><table id="groups"></table>
         <h2>Calibração da confiança</h2>
-        <p class="muted" id="calibration"></p></div>
+        <p class="muted" id="calibration"></p>
+        <table id="calibration-table"></table></div>
     </div>
   </section>
 </main>

@@ -64,7 +64,7 @@ function pool(options) {
     while (series.length < recent.length) series.push(main.addLineSeries(options()));
     series.forEach((s, i) => {
       const segment = recent[i];
-      s.applyOptions(segment ? { color: segment.color } : {});
+      s.applyOptions(segment ? { color: segment.color, lineStyle: segment.style ?? LW.LineStyle.Dashed } : {});
       s.setData(segment ? segment.points : []);
     });
   };
@@ -84,15 +84,28 @@ let priceLines = [], priceLinesKey = null;
 
 const candlePoint = (c) => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close });
 
-function forecastData(decision) {
+function forecastData(decision, logReturn = decision.predicted_log_return) {
   const end = decision.time + decision.horizon_minutes * 60;
   return [{ time: decision.time, value: decision.close },
-          { time: end, value: decision.close * Math.exp(decision.predicted_log_return) }];
+          { time: end, value: decision.close * Math.exp(logReturn) }];
 }
 
+// Só a previsão mais recente em destaque, com a faixa quando existe; as quatro anteriores esmaecidas.
+const FADED = 4;
 function renderForecast() {
-  drawForecasts(S.decisions.filter((d) => d.predicted_log_return != null && d.horizon_minutes)
-    .map((d) => ({ color: css("--forecast"), points: forecastData(d) })));
+  const recent = S.decisions.filter((d) => d.predicted_log_return != null && d.horizon_minutes).slice(-(FADED + 1));
+  const color = css("--forecast");
+  const segments = recent.slice(0, -1).map((d) => ({ color: color + "40", points: forecastData(d) }));
+  const last = recent[recent.length - 1];
+  if (last) {
+    if (last.interval) {
+      for (const bound of [last.interval.low, last.interval.high]) {
+        segments.push({ color: color + "99", style: LW.LineStyle.Dotted, points: forecastData(last, bound) });
+      }
+    }
+    segments.push({ color, points: forecastData(last) });
+  }
+  drawForecasts(segments);
 }
 
 function renderAttribution() {
@@ -202,8 +215,27 @@ function renderDecision() {
          cls(d.predicted_log_return));
   } else text("d-pred", "não se aplica: regra sem previsão de retorno", "muted");
   text("d-hurdle", `compra ${logPct(d.hurdle_long, 3)} · venda ${logPct(d.hurdle_short, 3)}`);
-  text("d-conf", S.session.model === "numerico_v1"
-    ? "desconhecida: o modelo v1 não emite probabilidades" : "não se aplica: regra fixa", "muted");
+  if (d.interval) {
+    const share = Math.round(100 * d.interval.coverage);
+    text("d-range", `${share}%: ${logPct(d.interval.low, 2)} a ${logPct(d.interval.high, 2)} ` +
+         `(${price(d.close * Math.exp(d.interval.low))} a ${price(d.close * Math.exp(d.interval.high))})`, "");
+  } else text("d-range", "indisponível neste modelo", "muted");
+  const side = d.evaluated_side && d.sides && d.sides[d.evaluated_side];
+  if (side) {
+    const label = d.evaluated_side === 1 ? "compra" : "venda";
+    text("d-conf", `${label}: alvo ${pct(side.p_target, 0).replace("+", "")}, stop ${pct(side.p_stop, 0).replace("+", "")}, ` +
+         `tempo ${pct(side.p_time, 0).replace("+", "")}`, "");
+    const ev = d.expected_values;
+    text("d-ev", Object.keys(ev).sort().reverse().map((k) => `${k === "1" ? "compra" : "venda"} ${pct(ev[k], 3)}`).join(" · ") +
+         (d.ev_margin == null ? "; sem margem: não opera" : `; margem ${pct(d.ev_margin, 2).replace("+", "")}`),
+         cls(Math.max(...Object.values(ev))));
+    text("d-levels", `stop ${pct(-side.stop_distance, 2)} · alvo ${pct(side.target_distance, 2)} (${label})`, "");
+  } else {
+    text("d-conf", S.session.model === "numerico_v1"
+      ? "desconhecida: o modelo v1 não emite probabilidades" : "não se aplica: regra fixa", "muted");
+    text("d-ev", "indisponível neste modelo", "muted");
+    text("d-levels", "provisórios: múltiplos da volatilidade", "muted");
+  }
   text("d-vol", `${logPct(d.volatility, 2)} em 30 min`);
   const color = /COMPRAR/.test(d.action) ? "pos" : /VENDER|ZERAR/.test(d.action) ? "neg" : "";
   text("d-action", d.action, `action ${color}`);
@@ -366,10 +398,11 @@ function openDetail(id) {
 function replayCommand(t) {
   const s = S.session, set = s.settings;
   const day = (seconds) => new Date(seconds * 1000).toISOString().slice(0, 10);
-  const parts = ["python App/trading_server.py replay", `--model ${s.model === "numerico_v1" ? "cnn" : "medias"}`,
+  const parts = ["python App/trading_server.py replay", `--model ${MODEL_FLAG[s.model] || "medias"}`,
                  `--start ${day(t.entry_time - 3600)}`, `--end ${day(t.exit_bar + 86400)}`, "--speed 10",
                  `--stake ${set.stake}`, `--horizon ${set.horizon_minutes || 0}`];
   if (!set.allow_short) parts.push("--no-short");
+  if (s.manual_ev_margin != null) parts.push(`--margem-ev ${s.manual_ev_margin}`);
   if (!set.levels) parts.push("--no-stops");
   if (s.test_unlocked) parts.push("--allow-test");
   return parts.join(" ");
@@ -499,7 +532,7 @@ function renderPerformance() {
     warning.textContent = notes.join(" ");
   }
   $("hist").replaceChildren(histogram(S.trades.map((x) => x.net_display)));
-  const empty = S.session.model === "numerico_v1" ? "Ainda sem decisões resolvidas." : "Este modelo não prevê retorno.";
+  const empty = MODEL_FLAG[S.session.model] ? "Ainda sem decisões resolvidas." : "Este modelo não prevê retorno.";
   $("scatter").replaceChildren(scatterPlot(S.outcomes.map((o) => [Math.expm1(o.predicted), Math.expm1(o.realized)]), { diagonal: true, empty }));
   $("rolling").replaceChildren(scatterPlot([], { empty, lines: [
     { values: rolling(S.outcomes.map((o) => Math.abs(o.error))), color: css("--accent") },
@@ -515,9 +548,39 @@ function renderPerformance() {
     cell(row, g.trades);
     cell(row, money(g.net_display), cls(g.net_display));
   }
-  $("calibration").textContent = S.session.model === "numerico_v1"
-    ? "Indisponível: o modelo v1 prevê só o retorno, sem probabilidades. O diagrama aparece quando existir a cabeça de desfecho (alvo, stop, tempo) do plano."
-    : "Não se aplica: médias móveis não emitem confiança.";
+  renderCalibration(stats.prediction || {});
+}
+
+const MODEL_FLAG = { numerico_v1: "cnn", numerico_v2: "v2" };
+
+function renderCalibration(q) {
+  const table = $("calibration-table");
+  table.replaceChildren();
+  if (!q.calibration) {
+    $("calibration").textContent = S.session.model === "numerico_v2"
+      ? "Ainda sem decisões resolvidas: cada uma aparece 30 minutos depois."
+      : S.session.model === "numerico_v1"
+        ? "Indisponível: o modelo v1 prevê só o retorno, sem probabilidades. Use o modelo v2."
+        : "Não se aplica: médias móveis não emitem confiança.";
+    return;
+  }
+  const coverage = q.interval_coverage == null ? ""
+    : ` A faixa de 90% conteve o preço em ${pct(q.interval_coverage, 0).replace("+", "")} de ${q.interval_resolved} decisões.`;
+  $("calibration").textContent = `Em ${q.calibration.resolved} decisões resolvidas desta sessão, ` +
+    "previsto contra observado para o lado avaliado. Decisões vizinhas se sobrepõem; amostras pequenas oscilam muito." + coverage;
+  const header = table.createTHead().insertRow();
+  ["Desfecho", "Faixa prevista", "Decisões", "Previsto", "Observado"].forEach((label) => {
+    const th = document.createElement("th"); th.textContent = label; header.append(th);
+  });
+  const body = table.createTBody();
+  for (const r of q.calibration.table) {
+    const row = body.insertRow();
+    cell(row, r.category);
+    cell(row, `${Math.round(100 * r.bin[0])}–${Math.round(100 * r.bin[1])}%`);
+    cell(row, r.count);
+    cell(row, pct(r.predicted, 0).replace("+", ""));
+    cell(row, pct(r.observed, 0).replace("+", ""));
+  }
 }
 
 async function refreshStats() {

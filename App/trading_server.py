@@ -89,8 +89,32 @@ def prediction_quality(outcomes):
     mae_zero = sum(abs(o["realized"]) for o in outcomes) / n
     signs = [o for o in outcomes if o["predicted"] != 0 and o["realized"] != 0]
     hits = sum((o["predicted"] > 0) == (o["realized"] > 0) for o in signs)
-    return {"resolved": n, "mae": mae, "mae_zero_forecast": mae_zero,
-            "direction_accuracy": hits / len(signs) if signs else None}
+    result = {"resolved": n, "mae": mae, "mae_zero_forecast": mae_zero,
+              "direction_accuracy": hits / len(signs) if signs else None}
+    covered = [o["inside_interval"] for o in outcomes if "inside_interval" in o]
+    if covered:
+        result["interval_coverage"] = sum(covered) / len(covered)
+        result["interval_resolved"] = len(covered)
+    probabilistic = [o for o in outcomes if "category" in o]
+    if probabilistic:
+        result["calibration"] = calibration_table(probabilistic)
+    return result
+
+
+CATEGORIES = {"alvo": "p_target", "stop": "p_stop", "tempo": "p_time"}
+
+
+def calibration_table(outcomes, bins=5):
+    """Probabilidade prevista contra frequência observada, por desfecho e faixa de probabilidade."""
+    table = []
+    for category, key in CATEGORIES.items():
+        for b in range(bins):
+            group = [o for o in outcomes if min(int(o["probabilities"][key] * bins), bins - 1) == b]
+            if group:
+                table.append({"category": category, "bin": [b / bins, (b + 1) / bins], "count": len(group),
+                              "predicted": sum(o["probabilities"][key] for o in group) / len(group),
+                              "observed": sum(o["category"] == category for o in group) / len(group)})
+    return {"resolved": len(outcomes), "table": table}
 
 
 class Runner:
@@ -137,10 +161,14 @@ class Runner:
         self.publish(self.log.append([{"kind": "alert", "time": moment,
                                        "level": level, "code": code, "message": message}]))
 
-    def replay(self, bars):
+    def replay(self, bars, start=None):
+        """bars anteriores a start são aquecimento: carregam o modelo sem ordens e sem pausa."""
         # Em velocidade alta, grava e transmite em lotes de ~50 ms em vez de candle a candle.
         pending, flushed = [], time.monotonic()
         for bar in bars:
+            if start is not None and bar.open_time < start:
+                pending += self.process(bar, warmup=True)
+                continue
             while self.paused and self.steps == 0:
                 self.commit(pending)
                 pending = []
@@ -273,6 +301,11 @@ def main():
     parser.add_argument("--target-k", type=float, default=2)
     parser.add_argument("--no-stops", action="store_true")
     parser.add_argument("--no-short", action="store_true")
+    parser.add_argument("--model-dir", type=Path, help="Pasta do modelo v2 (padrão Modelos/numerico_v2)")
+    parser.add_argument("--derivatives", type=Path, default=HERE / "data" / "derivatives",
+                        help="Replay: funding e métricas de derivative_data.py")
+    parser.add_argument("--margem-ev", type=float,
+                        help="v2: margem manual do valor esperado (fração, ex.: 0.001); substitui a da calibração")
     parser.add_argument("--db", type=Path)
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--no-browser", action="store_true")
@@ -282,11 +315,27 @@ def main():
         settings.validate()
     except ValueError as error:
         parser.error(str(error))
-    model = MODELS[args.model]()
+    derivatives = None
+    if args.model == "v2":
+        from derivatives_data import DerivativeSeries, live_derivatives
+        derivatives = DerivativeSeries.from_folder(args.derivatives) if args.mode == "replay" else DerivativeSeries()
+        options = {"derivatives": derivatives, "ev_margin": args.margem_ev}
+        if args.model_dir:
+            options["folder"] = args.model_dir
+        try:
+            model = MODELS["v2"](**options)
+        except FileNotFoundError as error:
+            parser.error(str(error))
+    else:
+        model = MODELS[args.model]()
     created = datetime.now(timezone.utc)
     session = {"mode": args.mode, "model": model.name, "model_version": model.version,
                "model_description": model.description, "settings": settings.__dict__,
                "created_utc": created.isoformat(), "simulation_only": True, "speed": args.speed}
+    if derivatives is not None:
+        session["derivatives_source"] = (f"Funding e open interest: {args.derivatives}" if args.mode == "replay"
+                                         else "Funding e open interest ao vivo da Binance (fapi)")
+        session["manual_ev_margin"] = args.margem_ev
     fx = None
     if args.mode == "replay":
         if not args.start or not args.end or args.start >= args.end:
@@ -317,11 +366,16 @@ def main():
     runner = Runner(Engine(model, settings, fx), EventLog(database), session)
     background = None
     if args.mode == "replay":
-        threading.Thread(target=runner.replay, args=(read_history(args.data / "btc_usdt_1m.csv", start, end),),
-                         daemon=True).start()
+        # Carrega a janela do modelo antes do início para decidir já no primeiro minuto do replay.
+        history = read_history(args.data / "btc_usdt_1m.csv", start - model.window * 60, end)
+        threading.Thread(target=runner.replay, args=(history, start), daemon=True).start()
     else:
         async def background():
+            if derivatives is not None:
+                refresher = asyncio.create_task(live_derivatives(  # referência mantida durante a sessão
+                    derivatives, lambda message: runner.notice(message, code="derivatives")))
             await live_bars("BTCUSDT", lambda bar, warmup: runner.feed(bar, time.time(), warmup),
+                            warmup=max(30, model.window),
                             on_fx=None if args.sem_brl else (lambda bar: fx.add(bar.open_time, bar.close)),
                             on_status=lambda message: runner.notice(message, code="connection"))
     app = create_app(runner, background)
