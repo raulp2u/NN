@@ -37,8 +37,9 @@ const sideIcon = (side) => (side === "comprada" ? "▲" : "▼");
 function chartOptions(height) {
   return {
     autoSize: true, height,
-    layout: { background: { color: css("--panel") }, textColor: css("--muted"), attributionLogo: false },
-    grid: { vertLines: { color: css("--border") }, horzLines: { color: css("--border") } },
+    layout: { background: { color: css("--panel") }, textColor: css("--muted"), attributionLogo: false,
+              fontFamily: getComputedStyle(document.body).fontFamily },
+    grid: { vertLines: { color: css("--grid") }, horzLines: { color: css("--grid") } },
     timeScale: { timeVisible: true, secondsVisible: false, borderColor: css("--border") },
     rightPriceScale: { borderColor: css("--border") },
     crosshair: { mode: LW.CrosshairMode.Normal },
@@ -205,7 +206,7 @@ function renderDecision() {
     ? "desconhecida: o modelo v1 não emite probabilidades" : "não se aplica: regra fixa", "muted");
   text("d-vol", `${logPct(d.volatility, 2)} em 30 min`);
   const color = /COMPRAR/.test(d.action) ? "pos" : /VENDER|ZERAR/.test(d.action) ? "neg" : "";
-  text("d-action", `DECISÃO: ${d.action}`, `action ${color}`);
+  text("d-action", d.action, `action ${color}`);
   text("d-reason", d.reason);
   const q = S.stats && S.stats.prediction;
   text("d-quality", q && q.resolved
@@ -278,6 +279,8 @@ function renderTrades() {
   for (const t of [...S.trades].reverse()) {
     const row = body.insertRow();
     row.onclick = () => openDetail(t.id);
+    row.tabIndex = 0;
+    row.onkeydown = (event) => { if (event.key === "Enter") openDetail(t.id); };
     const rate = t.rate_entry;
     const outcome = S.outcomeByDecision.get(t.decision_id);
     const review = S.reviews.get(t.id);
@@ -309,6 +312,7 @@ function openDetail(id) {
   const t = S.tradeById.get(id);
   const decision = S.decisionById.get(t.decision_id);
   $("detail").hidden = false;
+  $("close-detail").focus();
   $("detail-title").textContent = `Operação #${t.id}: ${t.side}, saída por ${t.exit_reason}, ${money(t.net_display)} (${pct(t.net_pct)})`;
   if (!detailChart) {
     detailChart = LW.createChart($("detail-chart"), chartOptions(360));
@@ -582,13 +586,17 @@ function connect() {
 let activeTab = "painel";
 document.querySelectorAll(".tab").forEach((button) => button.addEventListener("click", () => {
   activeTab = button.dataset.tab;
-  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b === button));
+  document.querySelectorAll(".tab").forEach((b) => {
+    b.classList.toggle("active", b === button);
+    b.setAttribute("aria-selected", String(b === button));
+  });
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === activeTab));
   if (activeTab === "diario") { renderTrades(); dirty.trades = false; }
   if (activeTab === "desempenho") refreshStats().then(renderPerformance);
 }));
 $("close-detail").onclick = () => { $("detail").hidden = true; };
 $("detail").onclick = (event) => { if (event.target.id === "detail") $("detail").hidden = true; };
+document.addEventListener("keydown", (event) => { if (event.key === "Escape") $("detail").hidden = true; });
 
 async function control(action, value) {
   const response = await fetch("/api/control", { method: "POST", headers: { "Content-Type": "application/json" },
