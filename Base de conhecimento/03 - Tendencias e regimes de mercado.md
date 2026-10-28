@@ -2,7 +2,7 @@
 
 Consulta: 27/10/2026.
 
-Moskowitz, Ooi e Pedersen documentam persistência de retornos em horizontes de um a doze meses em 58 instrumentos de futuros líquidos, com reversão parcial em horizontes maiores. Evidência de momentum mensal não comprova vantagem em candles de uma hora.
+Moskowitz, Ooi e Pedersen documentam persistência de retornos em horizontes de um a doze meses em 58 instrumentos de futuros líquidos, com reversão parcial em horizontes maiores. Evidência de momentum mensal não comprova vantagem em horizontes intradiários, como as janelas de 30 minutos deste projeto.
 
 **Decisão de engenharia:** usar médias móveis somente como referência simples de comparação. Identificar o horizonte e avaliar períodos de alta, queda e lateralização. Estimar volatilidade com observações passadas; não atribuir regimes usando informação futura. Verificar sensibilidade a custos e parâmetros sem escolher o melhor resultado no teste final.
 
